@@ -1159,6 +1159,7 @@ namespace client
         public int ToFloor { get; set; }
         public IEnumerable<PartOfPassenger> Passengers { get; set; }
         public int Time => Calculator.CalculateJumpTime(Passengers, FromFloor, ToFloor);
+        public int Cost => Passengers.Where(p => p.DestFloor == ToFloor).GetCost();
     }
 
     public class Way : IEnumerable<Jump>
@@ -1194,7 +1195,7 @@ namespace client
 
             Time = minTime;
 
-            Cost = passengers.GetCost();
+            Cost = GetWayCost(_items);
             if (landings != null)
             {
                 var landingPassengers = new List<PartOfPassenger>();
@@ -1276,6 +1277,11 @@ namespace client
         int GetWayTime(IEnumerable<Jump> jumps)
         {
             return jumps.Sum(j => j.Time);
+        }
+
+        int GetWayCost(IEnumerable<Jump> jumps)
+        {
+            return jumps.Sum(j => j.Cost);
         }
 
         public IEnumerator<Jump> GetEnumerator()
