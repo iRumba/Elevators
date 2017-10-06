@@ -80,44 +80,6 @@ namespace client
 
                     continue;
                 }
-
-                //if (elev.GetAllPassengers().Count() >= elev.GetCapacity())
-                //{
-                //    stand.Remove(elev);
-                //    canMove.Remove(elev);
-                //    continue;
-                //}
-
-                //if (elev.GetGoingOnPassengers().Count() > 0)
-                //{
-                //    canMove.Remove(elev);
-                //}
-
-                //IEnumerable<Passenger> forInvite;
-                //Elevator nearestEnemyElev = null;
-                //var enemyElevsOnFloor = Game.CurrentEnemyElevators.Where(el => el.Floor == elev.Floor && el.State == (int)ElevStates.Filling);
-                //if (enemyElevsOnFloor.Count() > 0)
-                //{
-                //    var min = enemyElevsOnFloor.Select(e => Math.Abs(e.GetX())).Min();
-                //    nearestEnemyElev = enemyElevsOnFloor.FirstOrDefault(el => Math.Abs(el.GetX()) == min);
-                //}
-
-                //if (nearestEnemyElev != null)
-                //    forInvite = Game.PassengersOnFloors[elev.Floor].GetReady().Where(p => p.GetDistanceTo(nearestEnemyElev) >= p.GetDistanceTo(elev));
-                //else
-                //    forInvite =
-                //        elev.PassengersWhoEncreaseBounty();
-
-                //foreach (var fi in forInvite)
-                //{
-                //    if (!Game.CanInvite.ContainsKey(elev))
-                //        Game.CanInvite[elev] = new List<Passenger>();
-                //    Game.CanInvite[elev].Add(fi);
-
-                //    if (!Game.CanInviteByPass.ContainsKey(fi))
-                //        Game.CanInviteByPass[fi] = new List<Elevator>();
-                //    Game.CanInviteByPass[fi].Add(elev);
-                //}
             }
 
             ManageInvites();
@@ -206,7 +168,7 @@ namespace client
             Game.CurrentAllPassengers = Game.CurrentMyPassengers.Concat(Game.CurrentEnemyPassengers).ToList();
             Game.PassengersOnFloors = Game.CurrentAllPassengers.ToLookup(p => p.Floor);
             Game.CurrentAllElevators = Game.CurrentMyElevators.Concat(Game.CurrentEnemyElevators).ToList();
-            Game.ActivePassengers = Game.CurrentAllPassengers.Where(p => p.State != 4 || p.State != 6).ToList();
+            Game.ActivePassengers = Game.CurrentAllPassengers.Where(p => p.State != 4 && p.State != 6).ToList();
 
             foreach (var elev in Game.CurrentAllElevators)
             {
