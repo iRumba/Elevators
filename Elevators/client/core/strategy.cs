@@ -1178,10 +1178,19 @@ namespace client
         public Way(IEnumerable<PartOfPassenger> passengers, int start, IEnumerable<Landing> landings = null)
         {
             var allWays = GetWays(passengers, start, landings?.Where(l => l.Passengers.FirstOrDefault() != null));
-            //var c = passengers.Count();
-            var minTime = 7200;
-            IEnumerable<Jump> minWay = null;
+            var exAllWays = new List<List<Jump>>();
+
             foreach (var way in allWays)
+            {
+                var exWay = way.ToList();
+                while (GetWayTime(exWay) + Game.Counter > 7200)
+                    exWay.RemoveAt(exWay.Count - 1);
+                exAllWays.Add(exWay);
+            }
+
+            var minTime = int.MaxValue;
+            List<Jump> minWay = null;
+            foreach (var way in exAllWays)
             {
                 var time = GetWayTime(way);
                 if (time < minTime)
@@ -1191,19 +1200,11 @@ namespace client
                 }
             }
 
-            _items = minWay?.ToList() ?? new List<Jump>();
+            _items = minWay ?? new List<Jump>();
 
             Time = minTime;
 
             Cost = GetWayCost(_items);
-            if (landings != null)
-            {
-                var landingPassengers = new List<PartOfPassenger>();
-                foreach(var l in landings)
-                    landingPassengers.AddRange(l.Passengers);
-
-                Cost += landingPassengers.GetCost();
-            }  
 
             _start = start;
         }
