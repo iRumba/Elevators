@@ -80,6 +80,44 @@ namespace client
 
                     continue;
                 }
+
+                //if (elev.GetAllPassengers().Count() >= elev.GetCapacity())
+                //{
+                //    stand.Remove(elev);
+                //    canMove.Remove(elev);
+                //    continue;
+                //}
+
+                //if (elev.GetGoingOnPassengers().Count() > 0)
+                //{
+                //    canMove.Remove(elev);
+                //}
+
+                //IEnumerable<Passenger> forInvite;
+                //Elevator nearestEnemyElev = null;
+                //var enemyElevsOnFloor = Game.CurrentEnemyElevators.Where(el => el.Floor == elev.Floor && el.State == (int)ElevStates.Filling);
+                //if (enemyElevsOnFloor.Count() > 0)
+                //{
+                //    var min = enemyElevsOnFloor.Select(e => Math.Abs(e.GetX())).Min();
+                //    nearestEnemyElev = enemyElevsOnFloor.FirstOrDefault(el => Math.Abs(el.GetX()) == min);
+                //}
+
+                //if (nearestEnemyElev != null)
+                //    forInvite = Game.PassengersOnFloors[elev.Floor].GetReady().Where(p => p.GetDistanceTo(nearestEnemyElev) >= p.GetDistanceTo(elev));
+                //else
+                //    forInvite =
+                //        elev.PassengersWhoEncreaseBounty();
+
+                //foreach (var fi in forInvite)
+                //{
+                //    if (!Game.CanInvite.ContainsKey(elev))
+                //        Game.CanInvite[elev] = new List<Passenger>();
+                //    Game.CanInvite[elev].Add(fi);
+
+                //    if (!Game.CanInviteByPass.ContainsKey(fi))
+                //        Game.CanInviteByPass[fi] = new List<Elevator>();
+                //    Game.CanInviteByPass[fi].Add(elev);
+                //}
             }
 
             ManageInvites();
@@ -128,19 +166,87 @@ namespace client
                             pwc.Passengers.ForEach(p => Game.InvitedPassengers[p] = ec.Elevator);
                             break;
                         }
-                        List<Passenger> passengers = null;
-                        if (Game.CurrentAllElevators.FirstOrDefault(el => el != ec.Elevator && el.IsOposed(ec.Elevator)) != null)
-                            passengers = pwc.Passengers.Where(p => p.IsMine()).ToList();
-                        else
-                            passengers = pwc.Passengers.Where(p => !p.IsMine()).ToList();
-                        if (elevFreeSpace >= passengers.Count)
+                        var mine = pwc.Passengers.Where(p => p.IsMine()).ToList();
+                        if (elevFreeSpace >= mine.Count)
                         {
                             //WriteLog("Mine Invite");
-                            passengers.ForEach(p => Game.InvitedPassengers[p] = ec.Elevator);
+                            mine.ForEach(p => Game.InvitedPassengers[p] = ec.Elevator);
                             break;
                         }
                     }
                 }
+
+                
+
+                //var elevatorsOnFloor = elevators.Where(elev => elev.Floor == f);
+                //var buf = new List<Passenger>();
+
+                //// Первичное распределение.
+                //// Назначаем новых пассажиров в лифты, которые едут на те же этажи
+                //foreach(var elev in elevatorsOnFloor)
+                //{
+                //    var byDestFloors = Game.CanInvite[elev].Where(p=>!p.IsInvited()).GetByDestFloors();
+                //    var elevDestFloors = elev.GetAllPassengers().GetDestFloors();
+                //    foreach(var f2 in elevDestFloors)
+                //    {
+                //        foreach (var p in byDestFloors[f2])
+                //            Game.InvitedPassengers[p] = elev;
+                //    }
+                //}
+
+                //// Вторичный проход. 
+                //// Устраняем переполнение. Сначала убираем пассажиров с максимальной дистанцией
+                //foreach (var elev in elevatorsOnFloor)
+                //{
+                //    if (elev.FreeSpace() >= elev.InvitedCount())
+                //        continue;
+
+                //    var forDel = elev.GetInvitedPassengers().OrderBy(p => Math.Abs(p.DestFloor - elev.Floor)).Take(elev.FreeSpace());
+                //    foreach(var p in forDel)
+                //    {
+                //        Game.InvitedPassengers.Remove(p);
+                //        //if (CanInviteByPass[p].Count > 1)
+                //        //    buf.Add(p);
+                //    }
+                //}
+
+                //// Третий проход.
+                //// Подбираем пассажиров, с которыми по пути.
+                //foreach (var elev in elevatorsOnFloor)
+                //{
+                //    if (elev.FreeSpace() == elev.InvitedCount())
+                //        continue;
+
+                //    var elevFloorsAverage = elev.GetAllPassengers().GetFloorsAverage();
+                //    if (elevFloorsAverage == 0)
+                //        elevFloorsAverage = elev.Floor;
+                //    IEnumerable<Passenger> freePassengersToWay = Game.CanInvite[elev]
+                //        .Where(p => p.GetDirection() == elev.GetDirection() || elev.GetDirection() == Direction.Unknown)
+                //        .Select(p => new { Pass = p, Dist = Math.Abs(p.DestFloor - elevFloorsAverage) })
+                //        .OrderBy(item => item.Dist).Select(item => item.Pass);
+
+                //    var byDestFloors = freePassengersToWay.GetByDestFloors();
+                //    var floorsByMax = byDestFloors
+                //        .Select(k => new { Floor = k.Key, Count = byDestFloors[k.Key].Count() });
+                //    //.Select(item=>item.Floor);
+
+                //    var elevFree = elev.FreeSpace() - elev.InvitedCount();
+                //    foreach (var f2 in floorsByMax)
+                //    {
+                //        var mustPickup = f2.Count <= elevFree;
+                //        if (!mustPickup)
+                //            continue;
+
+                //        foreach (var p in byDestFloors[f2.Floor])
+                //        {
+                //            if (elevFree > 0)
+                //            {
+                //                elevFree--;
+                //                Game.InvitedPassengers[p] = elev;
+                //            }
+                //        }
+                //    }
+                //}
             }
         }
 
@@ -161,24 +267,14 @@ namespace client
             if (Game.Counter == 1)
                 AtFirst();
 
-            if (Game.Counter % 10 == 0)
+            if (Game.Counter % 100 == 0)
                 WriteLog($"{Game.Counter}");
 
             Game.GoingOnElevators = Game.CurrentMyElevators.ToDictionary(elev => elev, elev => false);
             Game.CurrentAllPassengers = Game.CurrentMyPassengers.Concat(Game.CurrentEnemyPassengers).ToList();
             Game.PassengersOnFloors = Game.CurrentAllPassengers.ToLookup(p => p.Floor);
             Game.CurrentAllElevators = Game.CurrentMyElevators.Concat(Game.CurrentEnemyElevators).ToList();
-            Game.ActivePassengers = Game.CurrentAllPassengers.Where(p => p.State != 4 && p.State != 6).ToList();
-
-            foreach (var elev in Game.CurrentAllElevators)
-            {
-                if (!Game.FillingTime.ContainsKey(elev))
-                    Game.FillingTime[elev] = 0;
-                if (elev.State == (int)ElevStates.Filling)
-                    Game.FillingTime[elev]++;
-                else
-                    Game.FillingTime[elev] = 0;
-            }
+            Game.ActivePassengers = Game.CurrentAllPassengers.Where(p => p.State != 4 || p.State != 6).ToList();
 
             ManageVisitedFloors();
 
@@ -191,23 +287,12 @@ namespace client
             var activePassengersIds = Game.ActivePassengers.Select(p => p.Id);
 
             // Удаляем активных пассажиров из ожидаемых (они уже не ожидаются, они вышли из тени :) )
-
-            var forRemove = Game.ExpectedPassengers.Where(ep => ep.Id.HasValue && activePassengersIds.Contains(ep.Id.Value)).ToList();
-            //foreach (var fr in forRemove)
-            //{
-            //    var diff = Game.Counter - fr.Tick;
-            //    if (diff != 0)
-            //        WriteLog($"Move Type: {fr.MoveType} Dif: {diff}");
-            //    //else
-            //    //    WriteLog("ALL RIGHT!");
-            //    Game.ExpectedPassengers.Remove(fr);
-            //}
-            //Game.ExpectedPassengers.RemoveAll(ep => ep.Id.HasValue && activePassengersIds.Contains(ep.Id.Value));
+            Game.ExpectedPassengers.RemoveAll(ep => ep.Id.HasValue && activePassengersIds.Contains(ep.Id.Value));
 
             // Добавляем в ожидаемых тех пассажиров, которые зашли на лестницу или вышли из лифта, если их еще там нет
             var expectedPassengersIds = Game.ExpectedPassengers.Where(p => p.Id.HasValue).Select(p => p.Id).ToList();
-            var exitingPassengers = Game.CurrentAllPassengers.Where(p => p.State == 6 && !expectedPassengersIds.Contains(p.Id) && p.DestFloor != 1);
-            var movingPassengers = Game.CurrentAllPassengers.Where(p => p.State == 4 && !expectedPassengersIds.Contains(p.Id) && p.DestFloor != 1);
+            var exitingPassengers = Game.CurrentAllPassengers.Where(p => p.State == 6 && !expectedPassengersIds.Contains(p.Id));
+            var movingPassengers = Game.CurrentAllPassengers.Where(p => p.State == 4 && !expectedPassengersIds.Contains(p.Id));
             Game.ExpectedPassengers.AddRange(exitingPassengers.Select(p => new ExpectedPassengerInfo
             {
                 Id = p.Id,
@@ -215,7 +300,6 @@ namespace client
                 IsMine = p.GetElevator().IsMine(),
                 Tick = p.GetTimeForRespawn() + Game.Counter,
                 Weight = p.Weight,
-                MoveType = 1,
             }));
             Game.ExpectedPassengers.AddRange(movingPassengers.Select(p => new ExpectedPassengerInfo
             {
@@ -224,7 +308,6 @@ namespace client
                 IsMine = p.IsMine(),
                 Tick = p.GetTimeForRespawn() + Game.Counter,
                 Weight = p.Weight,
-                MoveType = 2,
             }));
 
             FillExpectedPassengersLookup();
@@ -300,7 +383,6 @@ namespace client
         public static List<PassengersWithCostForElevators> PassengersWhoMayIncrease { get; set; }
         public static Dictionary<Elevator, bool> GoingOnElevators { get; set; }
         public static bool Flag1 { get; private set; }
-        public static Dictionary<Elevator, int> FillingTime { get; set; } = new Dictionary<Elevator, int>();
 
         public static bool IsFilling(this Elevator elev)
         {
@@ -566,16 +648,34 @@ namespace client
 
         public static IEnumerable<FloorsWithPassengers> GetFloorsWithPassengers(this Elevator elev)
         {
+            //var preNext = elev.ComputeNextFloor();
+            //throw new NotImplementedException();
+
+            //IEnumerable<int> rangeFloors = null;
+            //if (preNext > 0)
+            //{
+            //    rangeFloors = Calculator.GetRange(elev.Floor, preNext);
+            //}
+            //else
+            //{
+            //    rangeFloors = AllFloors;
+            //}
+
+            //var currentRejects = elev.GetPotentialRejects();
+            //var way = new Way(elev);
+            //var cc = way.GetCostPerTick();
+
             foreach (var floor in AllFloors)
             {
                 if (floor == elev.Floor)
                     continue;
 
-                var timeFor = Calculator.CalculateJumpTime(elev.Passengers, elev.Floor, floor);
+                var timeWhen = Calculator.CalculateJumpTime(elev.GetAllPassengers(), elev.Floor, floor) + elev.GetTimeWhenAllPassengersWillInside();
 
-                var tickWhen = timeFor + Counter;
+                var tickWhen = timeWhen + Counter;
 
-                var waitings = PassengersOnFloors[floor].GetReady().Where(p => p.TimeToAway - (p.IsMine() ? elev.TimeForMyPassengerGoingTo() : elev.TimeForEnemyPassengerGoingTo() + Rules.MinStandingTimeForPickupEnemy) > timeFor + elev.GetTimeWhenAllPassengersWillInside());
+                var waitings = PassengersOnFloors[floor].GetReady().Where(p => p.TimeToAway - (p.IsMine() ? elev.TimeForMyPassengerGoingTo() : elev.TimeForEnemyPassengerGoingTo()) > timeWhen);
+                //var byDest = waitings.GetByDestFloors();
 
                 var expected = ExpectedPassengersOnFloors[floor].Where(p => p.Tick <= tickWhen);
 
@@ -584,8 +684,8 @@ namespace client
                     Floor = floor,
                     WaitingPassengers = waitings.ToList(),
                     ExpectedPassengers = expected.ToList(),
-                    TimeWhen = timeFor,
-                    ExpectedsOnCurrent = ExpectedPassengersOnFloors[elev.Floor].Where(ep => ep.Tick <= tickWhen).ToList(),
+                    TimeWhen = timeWhen,
+                    ExpectedsOnCurrent = ExpectedPassengersOnFloors[elev.Floor].Where(ep=>ep.Tick <= tickWhen).ToList(),
                 };
             }
         }
@@ -643,7 +743,7 @@ namespace client
                 {
                     var wLand = new Landing
                     {
-                        Floor = item.Floor,
+                        Floor = dest.Key,
                         Passengers = byDest[dest.Key].ToPart(),
                     };
                     var wWay = new Way(elev, new Landing[] { wLand });
@@ -801,7 +901,7 @@ namespace client
             if (VisitedFloors[ep.Id.Value].Count == 5)
                 return new int[] { 1 };
 
-            return AllFloors.Where(f => !VisitedFloors[ep.Id.Value].Contains(f));
+            return AllFloors.Where(f => !VisitedFloors[ep.Id.Value].Contains(f) && f != 1);
         }
 
         public static int GetTickWhenElevatorWillOnFloor(this Elevator elev, int floor)
@@ -929,9 +1029,9 @@ namespace client
                         return -1;
 
                     var timeByFloor = pass.GetDirection() == Direction.Up ? Rules.PassUppingTime : Rules.PassDowningTime;
-                    return (int)Math.Ceiling(timeByFloor * width) + Rules.PassWalkingTime + 1;
+                    return (int)Math.Ceiling(timeByFloor * width) + Rules.PassWalkingTime;
                 case (int)PassStates.Exiting:
-                    return Rules.AfterLeavingMovingTime - FillingTime[pass.GetElevator()] + Rules.PassWalkingTime + 1;
+                    return Rules.AfterLeavingMovingTime - (pass.GetElevator().TimeOnFloor - Rules.OpeningDoorsTime) + Rules.PassWalkingTime;
                 default:
                     return -1;
             }
@@ -965,7 +1065,7 @@ namespace client
 
         public static bool CanPickupEnemy(this Elevator elev)
         {
-            return FillingTime[elev] >= Rules.MinStandingTimeForPickupEnemy;
+            return elev.TimeOnFloor >= Rules.MinStandingTimeForPickupEnemy;
         }
 
         public static bool IsInvited(this Passenger pass)
@@ -1048,11 +1148,10 @@ namespace client
         public int ToFloor { get; set; }
         public IEnumerable<PartOfPassenger> Passengers { get; set; }
         public int Time => Calculator.CalculateJumpTime(Passengers, FromFloor, ToFloor);
-        public int Cost => Passengers.Where(p => p.DestFloor == ToFloor).GetCost();
     }
 
     public class Way : IEnumerable<Jump>
-    {
+    { 
         List<Jump> _items;
         int _start;
 
@@ -1060,31 +1159,17 @@ namespace client
 
         public int Cost { get; set; }
 
-        /// <summary>
-        /// Конструктор
-        /// </summary>
-        /// <param name="elev">Лифт, который нужно проверять</param>
-        /// <param name="landings">Набор посадок</param>
         public Way(Elevator elev, IEnumerable<Landing> landings = null) : this(elev.GetAllPassengers(), elev.Floor, landings) { }
 
-        public Way(IEnumerable<Passenger> passengers, int start, IEnumerable<Landing> landings = null) : this(passengers.ToPart(), start, landings) { }
+        public Way(IEnumerable<Passenger> passengers, int start, IEnumerable<Landing> landings = null) : this (passengers.ToPart(), start, landings) { }
 
         public Way(IEnumerable<PartOfPassenger> passengers, int start, IEnumerable<Landing> landings = null)
         {
             var allWays = GetWays(passengers, start, landings?.Where(l => l.Passengers.FirstOrDefault() != null));
-            var exAllWays = new List<List<Jump>>();
-
-            foreach (var way in allWays)
-            {
-                var exWay = way.ToList();
-                while (GetWayTime(exWay) + Game.Counter > 7200)
-                    exWay.RemoveAt(exWay.Count - 1);
-                exAllWays.Add(exWay);
-            }
             //var c = passengers.Count();
             var minTime = 7200;
-            List<Jump> minWay = null;
-            foreach (var way in exAllWays)
+            IEnumerable<Jump> minWay = null;
+            foreach (var way in allWays)
             {
                 var time = GetWayTime(way);
                 if (time < minTime)
@@ -1094,24 +1179,19 @@ namespace client
                 }
             }
 
-            _items = minWay ?? new List<Jump>();
+            _items = minWay?.ToList() ?? new List<Jump>();
 
             Time = minTime;
 
-            Cost = GetWayCost();
-            //if (_items.Count() > 0)
-            //    strategy.WriteLog($"Cost: {Cost}");
-            // passengers.GetCost();
-            //if (landings != null)
-            //{
-            //    var landingPassengers = new List<PartOfPassenger>();
-            //    foreach(var l in landings)
-            //        landingPassengers.AddRange(l.Passengers);
+            Cost = passengers.GetCost();
+            if (landings != null)
+            {
+                var landingPassengers = new List<PartOfPassenger>();
+                foreach(var l in landings)
+                    landingPassengers.AddRange(l.Passengers);
 
-            //    Cost += landingPassengers.GetCost();
-            //}  
-
-            var stop = passengers.FirstOrDefault() != null;
+                Cost += landingPassengers.GetCost();
+            }  
 
             _start = start;
         }
@@ -1128,26 +1208,20 @@ namespace client
         {
             var floors = passengers.GetDestFloors().Where(f => f != start);
             var passengersWithLandings = passengers;
-
+            
             if (landings != null)
             {
+                floors = new SortedSet<int>(floors.Concat(landings.Select(l => l.Floor)));
                 var landingsOnFloor = landings.Where(l => l.Floor == start);
-
-                foreach (var land in landingsOnFloor)
-                {
+                foreach(var land in landingsOnFloor)
                     passengersWithLandings = passengersWithLandings.Concat(land.Passengers);
-                    floors = floors.Concat(land.Passengers.GetDestFloors());
-                }
-                floors = floors.Concat(landings.Where(l => l.Floor != start).Select(l => l.Floor));
-                floors = new SortedSet<int>(floors);
-
                 landings = landings.Where(l => l.Floor != start);
             }
             var passengersToNext = passengersWithLandings.Where(p => p.DestFloor != start);
 
             var more = new List<int>();
             var less = new List<int>();
-            foreach (var f in floors)
+            foreach(var f in floors)
             {
                 if (f > start)
                     more.Add(f);
@@ -1160,7 +1234,14 @@ namespace client
             if (less.Count > 0)
                 about.Add(less.Max());
 
-            foreach (var i in about)
+            //yield return about.Select(i => new Jump
+            //{
+            //    FromFloor = start,
+            //    ToFloor = i,
+            //    Passengers = passengersWithLandings,
+            //});
+            
+            foreach(var i in about)
             {
                 var jumpsCol = GetWays(passengersToNext, i, landings);
                 var jump = new Jump
@@ -1184,11 +1265,6 @@ namespace client
         int GetWayTime(IEnumerable<Jump> jumps)
         {
             return jumps.Sum(j => j.Time);
-        }
-
-        int GetWayCost()
-        {
-            return _items.Sum(j => j.Cost);
         }
 
         public IEnumerator<Jump> GetEnumerator()
@@ -1315,8 +1391,6 @@ namespace client
 
         public static int CalculateJumpTime(IEnumerable<PartOfPassenger> passengers, int fromFloor, int destFloor)
         {
-            if (fromFloor == destFloor)
-                return 0;
             var movingTime = fromFloor > destFloor ? Game.Rules.ElevsDowningTime : Game.Rules.MinElevsUppingTime * passengers.GetWeightMultiplier();
             var res = Game.Rules.ClosingDoorsTime + (int)Math.Ceiling(movingTime) + Game.Rules.OpeningDoorsTime;
             return res;
@@ -1361,7 +1435,6 @@ namespace client
         public int Floor { get; set; }
         public bool IsMine { get; set; }
         public float Weight { get; set; } = 1.02f;
-        public int MoveType { get; internal set; }
     }
 
     public class Landing
@@ -1418,7 +1491,7 @@ namespace client
         {
             if (passengers.GetDestFloors().Count > 1)
                 throw new InvalidOperationException("Переданы пассажиры с разными этажами назначения");
-            if (new SortedSet<int>(passengers.Select(p => p.Floor)).Count > 1)
+            if (new SortedSet<int>(passengers.Select(p=>p.Floor)).Count > 1)
                 throw new InvalidOperationException("Переданы пассажиры с разными этажами");
 
             var first = passengers.FirstOrDefault();
@@ -1429,14 +1502,13 @@ namespace client
 
             var elevsOnFloor = Game.CurrentMyElevators.Where(elev => elev.IsFilling() && elev.Floor == Floor && !Game.GoingOnElevators[elev]);
             //strategy.WriteLog($"elevsOnFloor: {elevsOnFloor.Count()}");
-            foreach (var elev in elevsOnFloor)
+            foreach(var elev in elevsOnFloor)
             {
-                var forThisPassengers = passengers.Where(p => p.IsMine() || elev.CanPickupEnemy());
                 var cWay = new Way(elev);
                 var landing = new Landing
                 {
                     Floor = Floor,
-                    Passengers = forThisPassengers.ToPart(),
+                    Passengers = passengers.ToPart(),
                 };
                 var wWay = new Way(elev, new Landing[] { landing });
 
