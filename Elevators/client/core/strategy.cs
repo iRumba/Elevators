@@ -274,7 +274,7 @@ namespace client
             Game.CurrentAllPassengers = Game.CurrentMyPassengers.Concat(Game.CurrentEnemyPassengers).ToList();
             Game.PassengersOnFloors = Game.CurrentAllPassengers.ToLookup(p => p.Floor);
             Game.CurrentAllElevators = Game.CurrentMyElevators.Concat(Game.CurrentEnemyElevators).ToList();
-            Game.ActivePassengers = Game.CurrentAllPassengers.Where(p => p.State != 4 || p.State != 6).ToList();
+            Game.ActivePassengers = Game.CurrentAllPassengers.Where(p => p.State != 4 && p.State != 6).ToList();
 
             ManageVisitedFloors();
 
