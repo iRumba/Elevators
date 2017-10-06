@@ -1276,7 +1276,7 @@ namespace client
 
         int GetWayTime(IEnumerable<Jump> jumps)
         {
-            return jumps.Sum(j => j.Time);
+            return jumps.Sum(j => j.Time + Game.Rules.MinElevsStandingTime) - Game.Rules.MinElevsStandingTime;
         }
 
         int GetWayCost(IEnumerable<Jump> jumps)
