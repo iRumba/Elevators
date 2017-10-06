@@ -276,6 +276,16 @@ namespace client
             Game.CurrentAllElevators = Game.CurrentMyElevators.Concat(Game.CurrentEnemyElevators).ToList();
             Game.ActivePassengers = Game.CurrentAllPassengers.Where(p => p.State != 4 && p.State != 6).ToList();
 
+            foreach (var elev in Game.CurrentAllElevators)
+            {
+                if (!Game.FillingTime.ContainsKey(elev))
+                    Game.FillingTime[elev] = 0;
+                if (elev.State == (int)ElevStates.Filling)
+                    Game.FillingTime[elev]++;
+                else
+                    Game.FillingTime[elev] = 0;
+            }
+
             ManageVisitedFloors();
 
             ManageExpectedPassengers();
@@ -383,6 +393,7 @@ namespace client
         public static List<PassengersWithCostForElevators> PassengersWhoMayIncrease { get; set; }
         public static Dictionary<Elevator, bool> GoingOnElevators { get; set; }
         public static bool Flag1 { get; private set; }
+        public static Dictionary<Elevator, int> FillingTime { get; set; } = new Dictionary<Elevator, int>();
 
         public static bool IsFilling(this Elevator elev)
         {
@@ -1029,9 +1040,9 @@ namespace client
                         return -1;
 
                     var timeByFloor = pass.GetDirection() == Direction.Up ? Rules.PassUppingTime : Rules.PassDowningTime;
-                    return (int)Math.Ceiling(timeByFloor * width) + Rules.PassWalkingTime;
+                    return (int)Math.Ceiling(timeByFloor * width) + Rules.PassWalkingTime + 1;
                 case (int)PassStates.Exiting:
-                    return Rules.AfterLeavingMovingTime - (pass.GetElevator().TimeOnFloor - Rules.OpeningDoorsTime) + Rules.PassWalkingTime;
+                    return Rules.AfterLeavingMovingTime - FillingTime[pass.GetElevator()] + Rules.PassWalkingTime + 1;
                 default:
                     return -1;
             }
@@ -1065,7 +1076,7 @@ namespace client
 
         public static bool CanPickupEnemy(this Elevator elev)
         {
-            return elev.TimeOnFloor >= Rules.MinStandingTimeForPickupEnemy;
+            return FillingTime[elev] >= Rules.MinStandingTimeForPickupEnemy;
         }
 
         public static bool IsInvited(this Passenger pass)
