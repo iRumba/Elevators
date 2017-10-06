@@ -1220,20 +1220,26 @@ namespace client
         {
             var floors = passengers.GetDestFloors().Where(f => f != start);
             var passengersWithLandings = passengers;
-            
+
             if (landings != null)
             {
-                floors = new SortedSet<int>(floors.Concat(landings.Select(l => l.Floor)));
                 var landingsOnFloor = landings.Where(l => l.Floor == start);
-                foreach(var land in landingsOnFloor)
+
+                foreach (var land in landingsOnFloor)
+                {
                     passengersWithLandings = passengersWithLandings.Concat(land.Passengers);
+                    floors = floors.Concat(land.Passengers.GetDestFloors());
+                }
+                floors = floors.Concat(landings.Where(l => l.Floor != start).Select(l => l.Floor));
+                floors = new SortedSet<int>(floors);
+
                 landings = landings.Where(l => l.Floor != start);
             }
             var passengersToNext = passengersWithLandings.Where(p => p.DestFloor != start);
 
             var more = new List<int>();
             var less = new List<int>();
-            foreach(var f in floors)
+            foreach (var f in floors)
             {
                 if (f > start)
                     more.Add(f);
@@ -1246,14 +1252,7 @@ namespace client
             if (less.Count > 0)
                 about.Add(less.Max());
 
-            //yield return about.Select(i => new Jump
-            //{
-            //    FromFloor = start,
-            //    ToFloor = i,
-            //    Passengers = passengersWithLandings,
-            //});
-            
-            foreach(var i in about)
+            foreach (var i in about)
             {
                 var jumpsCol = GetWays(passengersToNext, i, landings);
                 var jump = new Jump
