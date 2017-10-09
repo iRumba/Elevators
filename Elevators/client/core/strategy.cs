@@ -142,10 +142,14 @@ namespace client
                 var pwcCollection = new List<PassengersWithCostForElevators>();
                 foreach (var pof in passengersOnFloor)
                 {
-                    var passengersWithCosts = new PassengersWithCostForElevators(passengersOnFloor[pof.Key]);
-                    if (passengersWithCosts.IncreasedCosts.Any(ic => ic.CostWith > ic.CostWithout))
-                        pwcCollection.Add(passengersWithCosts);
-
+                    var mine = passengersOnFloor[pof.Key].Where(p => p.IsMine());
+                    var enemy = passengersOnFloor[pof.Key].Where(p => !p.IsMine());
+                    var passengersWithCostsEnemy = new PassengersWithCostForElevators(enemy);
+                    var passengersWithCostsMine = new PassengersWithCostForElevators(mine);
+                    if (passengersWithCostsEnemy.IncreasedCosts.Any(ic => ic.CostWith > ic.CostWithout))
+                        pwcCollection.Add(passengersWithCostsEnemy);
+                    if (passengersWithCostsMine.IncreasedCosts.Any(ic => ic.CostWith > ic.CostWithout))
+                        pwcCollection.Add(passengersWithCostsMine);
 
                 }
 
@@ -162,13 +166,20 @@ namespace client
                             pwc.Passengers.ForEach(p => Game.InvitedPassengers[p] = ec.Elevator);
                             break;
                         }
-                        var mine = pwc.Passengers.Where(p => p.IsMine()).ToList();
-                        if (elevFreeSpace >= mine.Count)
-                        {
-                            //WriteLog("Mine Invite");
-                            mine.ForEach(p => Game.InvitedPassengers[p] = ec.Elevator);
-                            break;
-                        }
+
+                        //var mine = pwc.Passengers.Where(p => p.IsMine()).ToList();
+                        //var enemy = pwc.Passengers.Where(p => !p.IsMine()).ToList();
+                        //IEnumerable<Passenger> part = null;
+                        //if (enemy.Count <= elevFreeSpace && enemy.Count >= mine.Count)
+                        //    part = enemy;
+                        //else
+                        //    part = mine;
+                        //if (elevFreeSpace >= part.Count())
+                        //{
+                        //    //WriteLog("Mine Invite");
+                        //    mine.ForEach(p => Game.InvitedPassengers[p] = ec.Elevator);
+                        //    break;
+                        //}
                     }
                 }
 
@@ -1227,6 +1238,7 @@ namespace client
                 if (jumpsCol.Count() == 0)
                     yield return retJumps;
             }
+
             //var floors = passengers.GetDestFloors().Where(f => f != start);
             //var passengersWithLandings = passengers;
 
