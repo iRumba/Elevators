@@ -51,9 +51,6 @@ namespace client
         private void Clearing()
         {
             Game.InvitedPassengers.Clear();
-            Game.InvitedByElevators = null;
-            Game.CanInvite.Clear();
-            Game.CanInviteByPass.Clear();
         }
 
         void AtFirst()
@@ -276,6 +273,16 @@ namespace client
             Game.CurrentAllElevators = Game.CurrentMyElevators.Concat(Game.CurrentEnemyElevators).ToList();
             Game.ActivePassengers = Game.CurrentAllPassengers.Where(p => p.State != 4 && p.State != 6).ToList();
 
+            foreach (var elev in Game.CurrentAllElevators)
+            {
+                if (!Game.FillingTime.ContainsKey(elev))
+                    Game.FillingTime[elev] = 0;
+                if (elev.State == (int)ElevStates.Filling)
+                    Game.FillingTime[elev]++;
+                else
+                    Game.FillingTime[elev] = 0;
+            }
+
             ManageVisitedFloors();
 
             ManageExpectedPassengers();
@@ -374,15 +381,12 @@ namespace client
         public static List<Passenger> ActivePassengers { get; set; }
         public static GameRules Rules { get; } = new GameRules();
         public static Dictionary<Passenger, Elevator> InvitedPassengers = new Dictionary<Passenger, Elevator>();
-        public static Dictionary<Elevator, List<Passenger>> CanInvite = new Dictionary<Elevator, List<Passenger>>();
-        public static Dictionary<Passenger, List<Elevator>> CanInviteByPass = new Dictionary<Passenger, List<Elevator>>();
-        public static ILookup<Elevator, Passenger> InvitedByElevators { get; set; }
         public static Dictionary<int, HashSet<int>> VisitedFloors { get; set; } = new Dictionary<int, HashSet<int>>();
         public static int MyCoordMultiplier => MyType.StartsWith("F") ? -1 : 1;
         public static string MyType { get; set; }
-        public static List<PassengersWithCostForElevators> PassengersWhoMayIncrease { get; set; }
         public static Dictionary<Elevator, bool> GoingOnElevators { get; set; }
         public static bool Flag1 { get; private set; }
+        public static Dictionary<Elevator, int> FillingTime { get; set; } = new Dictionary<Elevator, int>();
 
         public static bool IsFilling(this Elevator elev)
         {
@@ -525,41 +529,6 @@ namespace client
             return elev.State == (int)ElevStates.Moving || elev.State == (int)ElevStates.Waiting;
         }
 
-        //public static Dictionary<int, float> GetFloorsWithExpectedByTick(this Elevator elev)
-        //{
-        //    var res = new Dictionary<int, float>();
-        //    var nextFloor = elev.ComputeNextFloor();
-        //    IEnumerable<int> checkedFloors;
-        //    if (nextFloor > 0)
-        //        checkedFloors = AllFloors.Between(elev.Floor, nextFloor);
-        //    else
-        //        checkedFloors = AllFloors;
-
-        //    foreach(var f in checkedFloors)
-        //    {
-        //        var timeWhen = elev.GetTickWhenElevatorWillOnFloor(f);
-        //        var toPassCount = elev.Passengers.GetByDestFloors()[f].Count();
-        //        var elevsTo = CurrentAllElevators
-        //            .Where(el => el.IsMoving() && elev.NextFloor == f && elev.GetTickWhenElevatorWillOnFloor(f) < timeWhen);
-        //        if (elevsTo.Count() > 0 && toPassCount == 0)
-        //            continue;
-        //        var expectedTicks = ExpectedPassengersOnFloors[f].Where(ep => ep.Tick > timeWhen)
-        //            .Where(ep => ep.GetDirection() == elev.GetDirection() || elev.GetDirection() == Direction.Unknown)
-        //            .Select(ep => ep.Tick + (ep.IsMine ? 0 : Rules.MinStandingTimeForPickupEnemy))
-        //            .ToArray();
-        //        if (expectedTicks.Length == 0 && toPassCount == 0)
-        //            continue;
-
-        //        var lastExpectedTime = expectedTicks.Length > 0 ? expectedTicks.Max() : Counter + 1;
-
-        //        var value = (float)(expectedTicks.Length + toPassCount) / (lastExpectedTime - Counter);
-                    
-        //        res.Add(f, value);
-        //    }
-
-        //    return res;
-        //}
-
         public static bool HasInvitedPassengers(this Elevator elev)
         {
             return InvitedPassengers.ContainsValue(elev);
@@ -572,7 +541,7 @@ namespace client
 
         public static bool IsReadyToMove(this Elevator elev)
         {
-            return Counter<140 ? elev.TimeOnFloor >= Rules.MinElevsStandingTime : elev.TimeOnFloor >= Rules.MinElevsStandingTime + Rules.OpeningDoorsTime;
+            return FillingTime[elev] > Rules.MinElevsStandingTime;// Counter <140 ? elev.TimeOnFloor >= Rules.MinElevsStandingTime : elev.TimeOnFloor >= Rules.MinElevsStandingTime + Rules.OpeningDoorsTime;
         }
 
         public static int Nearest(this IEnumerable<int> src, int dest)
@@ -1065,7 +1034,7 @@ namespace client
 
         public static bool CanPickupEnemy(this Elevator elev)
         {
-            return elev.TimeOnFloor >= Rules.MinStandingTimeForPickupEnemy;
+            return FillingTime[elev] >= Rules.MinStandingTimeForPickupEnemy;
         }
 
         public static bool IsInvited(this Passenger pass)
