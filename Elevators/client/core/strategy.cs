@@ -59,6 +59,7 @@ namespace client
 
         void AtFirst()
         {
+            Game.FirstWaveElevators.AddRange(Game.CurrentMyElevators.Where(elev => elev.Id < 7).Select(elev=>elev.Id));
             Game.MyType = Game.CurrentMyElevators.First().Type;
             _strategy = this;
         }
@@ -110,10 +111,10 @@ namespace client
                 {
                     case 2:
                     case 3:
-                    case 4:
+                    
                         elev = Game.CurrentMyElevators[0];
                         break;
-                    
+                    case 4:
                     case 5:
                     case 6:
                         elev = Game.CurrentMyElevators[1];
@@ -121,10 +122,11 @@ namespace client
                     
                     case 7:
                     case 8:
+                    case 9:
                         elev = Game.CurrentMyElevators[2];
                         break;
-                    
-                    case 9:
+
+                    default:
                         elev = Game.CurrentMyElevators[3];
                         break;
                 }
@@ -132,7 +134,8 @@ namespace client
                     Game.InvitedPassengers[pass] = elev;
                 else
                 {
-                    var elevs = Game.CurrentMyElevators.Where(el => el.IsFilling() && elev.Floor == pass.Floor && !Game.GoingOnElevators[elev]);
+
+                    var elevs = Game.CurrentMyElevators.Where(el => el.IsFilling() && el.Floor == 1 && !Game.GoingOnElevators[el] && !Game.FirstWaveElevators.Contains(el.Id));
                     elev = elevs.FirstOrDefault();
                     if (elev!=null)
                         Game.InvitedPassengers[pass] = elev;
@@ -340,6 +343,11 @@ namespace client
             if (Game.Counter % 100 == 0)
                 WriteLog($"{Game.Counter}");
 
+            // TODO
+            var removeFW = Game.CurrentMyElevators.Where(elev => elev.State == (int)ElevStates.Moving);//.ForEach();
+            foreach (var elev in removeFW)
+                Game.FirstWaveElevators.Remove(elev.Id);
+
             Game.GoingOnElevators = Game.CurrentMyElevators.ToDictionary(elev => elev, elev => false);
             Game.CurrentAllPassengers = Game.CurrentMyPassengers.Concat(Game.CurrentEnemyPassengers).ToList();
             Game.PassengersOnFloors = Game.CurrentAllPassengers.ToLookup(p => p.Floor);
@@ -465,6 +473,7 @@ namespace client
         public static bool Flag1 { get; private set; }
         public static Dictionary<Elevator, int> FillingTime { get; set; } = new Dictionary<Elevator, int>();
         public static List<Elevator> MustStand { get; set; } = new List<Elevator>();
+        public static List<int> FirstWaveElevators { get; set; } = new List<int>();
 
         public static bool IsFilling(this Elevator elev)
         {
@@ -682,6 +691,7 @@ namespace client
             {
                 elev.GoToFloor(next);
                 GoingOnElevators[elev] = true;
+                //FirstWaveElevators.Remove(elev);
                 return true;
             }
             //if (elev.Floor == 9 && elev.GetAllPassengers().Count() == 0 && elev.IsReadyToMove())
