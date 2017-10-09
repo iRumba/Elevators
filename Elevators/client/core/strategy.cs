@@ -1100,7 +1100,27 @@ namespace client
         public int FromFloor { get; set; }
         public int ToFloor { get; set; }
         public IEnumerable<PartOfPassenger> Passengers { get; set; }
-        public int Time => Calculator.CalculateJumpTime(Passengers, FromFloor, ToFloor);
+        public int Time
+        {
+            get
+            {
+                var res =  Calculator.CalculateJumpTime(Passengers, FromFloor, ToFloor);
+                if (WithLanding)
+                {
+                    var lPassengers = Passengers.Where(p => p.DestFloor == ToFloor);
+                    var distance = Game.Rules.FromMidToElvesDistance;
+                    if (lPassengers.Any(p => !p.IsMine))
+                        distance += Game.Rules.FromMidToWaitingDistance;
+                    else
+                        distance -= Game.Rules.FromMidToWaitingDistance;
+
+                    res += distance / Game.Rules.PassMovingSpeed;
+                }
+                return res;
+            }
+        }    
+        public int Cost => Passengers.Where(p => p.DestFloor == ToFloor).GetCost();
+        public bool WithLanding { get; set; }
     }
 
     public class Way : IEnumerable<Jump>
@@ -1136,15 +1156,7 @@ namespace client
 
             Time = minTime;
 
-            Cost = passengers.GetCost();
-            if (landings != null)
-            {
-                var landingPassengers = new List<PartOfPassenger>();
-                foreach(var l in landings)
-                    landingPassengers.AddRange(l.Passengers);
-
-                Cost += landingPassengers.GetCost();
-            }  
+            Cost = GetWayCost(_items);
 
             _start = start;
         }
@@ -1161,20 +1173,28 @@ namespace client
         {
             var floors = passengers.GetDestFloors().Where(f => f != start);
             var passengersWithLandings = passengers;
-            
+            var withLanding = false;
+
             if (landings != null)
             {
-                floors = new SortedSet<int>(floors.Concat(landings.Select(l => l.Floor)));
                 var landingsOnFloor = landings.Where(l => l.Floor == start);
-                foreach(var land in landingsOnFloor)
+
+                foreach (var land in landingsOnFloor)
+                {
+                    withLanding = true;
                     passengersWithLandings = passengersWithLandings.Concat(land.Passengers);
+                    floors = floors.Concat(land.Passengers.GetDestFloors());
+                }
+                floors = floors.Concat(landings.Where(l => l.Floor != start).Select(l => l.Floor));
+                floors = new SortedSet<int>(floors);
+
                 landings = landings.Where(l => l.Floor != start);
             }
             var passengersToNext = passengersWithLandings.Where(p => p.DestFloor != start);
 
             var more = new List<int>();
             var less = new List<int>();
-            foreach(var f in floors)
+            foreach (var f in floors)
             {
                 if (f > start)
                     more.Add(f);
@@ -1187,14 +1207,7 @@ namespace client
             if (less.Count > 0)
                 about.Add(less.Max());
 
-            //yield return about.Select(i => new Jump
-            //{
-            //    FromFloor = start,
-            //    ToFloor = i,
-            //    Passengers = passengersWithLandings,
-            //});
-            
-            foreach(var i in about)
+            foreach (var i in about)
             {
                 var jumpsCol = GetWays(passengersToNext, i, landings);
                 var jump = new Jump
@@ -1202,6 +1215,7 @@ namespace client
                     FromFloor = start,
                     ToFloor = i,
                     Passengers = passengersWithLandings,
+                    WithLanding = withLanding,
                 };
                 var retJumps = new Jump[] { jump }.AsEnumerable();
                 foreach (var jumps in jumpsCol)
@@ -1213,11 +1227,63 @@ namespace client
                 if (jumpsCol.Count() == 0)
                     yield return retJumps;
             }
+            //var floors = passengers.GetDestFloors().Where(f => f != start);
+            //var passengersWithLandings = passengers;
+
+            //if (landings != null)
+            //{
+            //    floors = new SortedSet<int>(floors.Concat(landings.Select(l => l.Floor)));
+            //    var landingsOnFloor = landings.Where(l => l.Floor == start);
+            //    foreach(var land in landingsOnFloor)
+            //        passengersWithLandings = passengersWithLandings.Concat(land.Passengers);
+            //    landings = landings.Where(l => l.Floor != start);
+            //}
+            //var passengersToNext = passengersWithLandings.Where(p => p.DestFloor != start);
+
+            //var more = new List<int>();
+            //var less = new List<int>();
+            //foreach(var f in floors)
+            //{
+            //    if (f > start)
+            //        more.Add(f);
+            //    else if (f < start)
+            //        less.Add(f);
+            //}
+            //var about = new List<int>();
+            //if (more.Count > 0)
+            //    about.Add(more.Min());
+            //if (less.Count > 0)
+            //    about.Add(less.Max());
+
+            //foreach(var i in about)
+            //{
+            //    var jumpsCol = GetWays(passengersToNext, i, landings);
+            //    var jump = new Jump
+            //    {
+            //        FromFloor = start,
+            //        ToFloor = i,
+            //        Passengers = passengersWithLandings,
+            //    };
+            //    var retJumps = new Jump[] { jump }.AsEnumerable();
+            //    foreach (var jumps in jumpsCol)
+            //    {
+
+            //        retJumps = retJumps.Concat(jumps);
+            //        yield return retJumps;
+            //    }
+            //    if (jumpsCol.Count() == 0)
+            //        yield return retJumps;
+            //}
         }
 
         int GetWayTime(IEnumerable<Jump> jumps)
         {
             return jumps.Sum(j => j.Time);
+        }
+
+        int GetWayCost(IEnumerable<Jump> jumps)
+        {
+            return jumps.Sum(j => j.Cost);
         }
 
         public IEnumerator<Jump> GetEnumerator()
