@@ -344,7 +344,7 @@ namespace client
                 WriteLog($"{Game.Counter}");
 
             // TODO
-            var removeFW = Game.CurrentMyElevators.Where(elev => elev.State == (int)ElevStates.Moving);//.ForEach();
+            var removeFW = Game.CurrentMyElevators.Where(elev => elev.State == (int)ElevStates.Moving && elev.Passengers.Count == 0);//.ForEach();
             foreach (var elev in removeFW)
                 Game.FirstWaveElevators.Remove(elev.Id);
 
